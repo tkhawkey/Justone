@@ -1,0 +1,1117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#EEF1FF">
+<title>Just One</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Permanent+Marker&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#EEF1FF;
+  --ink:#231D5C;
+  --ink-soft:#5B5690;
+  --paper:#FFFFFF;
+  --pink:#FF4F9A;
+  --sun:#FFD23F;
+  --blue:#3B6CFF;
+  --mint:#21D19F;
+  --tang:#FF8A3D;
+  --grape:#9B6BFF;
+  --ui:"Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --marker:"Permanent Marker", "Comic Sans MS", "Chalkboard SE", cursive;
+  --r-lg:26px; --r-md:18px; --r-sm:12px;
+  --bounce:cubic-bezier(.2,.9,.3,1.35);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0;min-height:100%;
+  font-family:var(--ui);font-size:17px;line-height:1.4;color:var(--ink);
+  background:var(--bg);
+  background-image:radial-gradient(circle at 1px 1px, rgba(35,29,92,.09) 1.4px, transparent 0);
+  background-size:22px 22px;
+  -webkit-tap-highlight-color:transparent;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+
+#app{max-width:480px;margin:0 auto;padding:12px 16px 40px;min-height:100vh}
+
+/* ---------- HUD ---------- */
+#hud{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);margin:0 -16px;padding:8px 16px 10px}
+#hud:empty{display:none}
+.hud-row{display:flex;align-items:center;gap:8px}
+.mini-logo{font-weight:800;font-size:1.25rem;letter-spacing:-.02em;margin-right:auto;display:flex;align-items:center;gap:6px}
+.mini-logo i{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:9px;background:var(--pink);color:#fff;font-style:normal;font-family:var(--marker);font-size:1.05rem;transform:rotate(-8deg);border:2.5px solid var(--ink)}
+.chip{display:inline-flex;align-items:center;gap:6px;border:2.5px solid var(--ink);border-radius:999px;background:var(--paper);padding:5px 12px;font-weight:700;font-size:.95rem}
+.chip.score{background:var(--sun)}
+.chip.score b{font-size:1.1rem;display:inline-block}
+.chip.score b.bump{animation:bump .6s var(--bounce)}
+@keyframes bump{40%{transform:scale(1.7) rotate(-10deg)}}
+.track{display:grid;grid-template-columns:repeat(13,1fr);gap:4px;margin-top:9px}
+.dot{height:10px;border-radius:5px;background:rgba(35,29,92,.12)}
+.dot.won{background:var(--mint)}
+.dot.lost{background:var(--pink);opacity:.55}
+.dot.now{background:var(--sun);box-shadow:0 0 0 2px var(--ink);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{transform:scaleY(1.5)}}
+
+/* ---------- general ---------- */
+.screen{animation:screenIn .35s ease-out both}
+@keyframes screenIn{from{opacity:0;transform:translateY(10px)}}
+h1,h2,h3{margin:0;line-height:1.05;letter-spacing:-.02em}
+.h2{font-size:2rem;font-weight:800}
+.sub{color:var(--ink-soft);margin:.4rem 0 0}
+.center{text-align:center}
+.stack>*+*{margin-top:14px}
+.section-title{font-weight:800;font-size:1.15rem;margin:26px 0 10px;display:flex;align-items:baseline;gap:8px}
+.section-title .count{display:inline-grid;place-items:center;min-width:28px;height:28px;border-radius:14px;background:var(--ink);color:#fff;font-size:.9rem}
+.panel{background:var(--paper);border:3px solid var(--ink);border-radius:var(--r-lg);padding:18px;box-shadow:0 6px 0 var(--ink)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:3px solid var(--ink);border-radius:var(--r-md);
+  background:var(--sun);font-weight:800;font-size:1.1rem;padding:14px 20px;box-shadow:0 5px 0 var(--ink);
+  transition:transform .08s, box-shadow .08s, filter .15s;user-select:none}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+.btn[disabled]{filter:grayscale(1);opacity:.5;pointer-events:none}
+.btn.big{width:100%;font-size:1.3rem;padding:17px 20px}
+.btn.pink{background:var(--pink);color:#fff}
+.btn.blue{background:var(--blue);color:#fff}
+.btn.mint{background:var(--mint)}
+.btn.grape{background:var(--grape);color:#fff}
+.btn.ghost{background:var(--paper);box-shadow:0 3px 0 var(--ink);font-size:1rem;padding:11px 16px}
+.btn.ghost:active{box-shadow:0 0 0 var(--ink);transform:translateY(3px)}
+.btn.small{font-size:.95rem;padding:9px 14px}
+.btn-row{display:flex;gap:12px}
+.btn-row .btn{flex:1}
+.link-btn{background:none;border:0;color:var(--ink-soft);text-decoration:underline;font-weight:700;padding:8px;margin:6px auto 0;display:block}
+
+input.field{width:100%;border:3px solid var(--ink);border-radius:var(--r-md);padding:13px 15px;font-size:1.2rem;font-weight:700;background:#fff;outline:none}
+input.field:focus{box-shadow:0 0 0 4px rgba(59,108,255,.35)}
+.lbl{display:block;font-weight:700;margin:0 0 8px}
+
+.av{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:50%;background:var(--c,#ddd);border:2.5px solid var(--ink);font-size:1.25rem;line-height:1;flex:none}
+.av.xl{width:96px;height:96px;font-size:3.2rem;border-width:4px}
+.bounce{animation:hop 1.4s ease-in-out infinite}
+@keyframes hop{0%,100%{transform:translateY(0)}45%{transform:translateY(-14px) rotate(-6deg)}60%{transform:translateY(0) scaleY(.9)}}
+
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,140%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:14px;font-weight:700;z-index:60;transition:transform .35s var(--bounce);max-width:90vw;text-align:center}
+#toast.show{transform:translate(-50%,0)}
+
+/* ---------- home ---------- */
+.hero{text-align:center;padding:26px 0 20px}
+.logo{font-size:4.6rem;font-weight:800;letter-spacing:-.05em;line-height:.9}
+.logo .easels{display:flex;justify-content:center;gap:6px;margin-top:10px}
+.logo .easels span{display:inline-grid;place-items:center;width:64px;height:74px;background:#fff;border:4px solid var(--ink);border-radius:12px;font-family:var(--marker);font-weight:400;font-size:3rem;
+  box-shadow:0 6px 0 var(--ink);transform:rotate(var(--r));animation:wobble 3.2s ease-in-out infinite;animation-delay:calc(var(--i) * .25s);color:var(--c)}
+@keyframes wobble{50%{transform:rotate(calc(var(--r) * -1)) translateY(-4px)}}
+.tagline{font-size:1.1rem;color:var(--ink-soft);margin:18px auto 0;max-width:30ch}
+.emojis{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+.emojis button{aspect-ratio:1;border:2.5px solid transparent;border-radius:12px;background:rgba(35,29,92,.06);font-size:1.45rem;padding:0;transition:transform .2s var(--bounce)}
+.emojis button.on{border-color:var(--ink);background:var(--sun);transform:scale(1.12) rotate(-6deg)}
+.or{text-align:center;color:var(--ink-soft);font-weight:700;margin:16px 0 10px}
+.join-row{display:flex;gap:10px}
+.join-row input{text-transform:uppercase;letter-spacing:.3em;text-align:center;font-size:1.4rem}
+.how{margin-top:22px}
+.how summary{font-weight:800;cursor:pointer;padding:6px 0}
+.how ol{padding-left:1.2em;margin:.4em 0 0}
+.how li{margin:.35em 0}
+
+/* ---------- lobby ---------- */
+.room-card{text-align:center}
+.room-code{display:flex;justify-content:center;gap:8px;margin:8px 0 14px}
+.room-code span{display:inline-grid;place-items:center;width:58px;height:68px;border:3px solid var(--ink);border-radius:14px;font-family:var(--marker);font-size:2.4rem;background:var(--c);box-shadow:0 4px 0 var(--ink);transform:rotate(var(--r))}
+.qr{width:150px;margin:0 auto 14px;padding:10px;background:#fff;border-radius:14px;border:2.5px solid var(--ink)}
+.qr svg{display:block;width:100%;height:auto}
+.plist{display:flex;flex-wrap:wrap;gap:10px}
+.pchip{display:flex;align-items:center;gap:8px;padding:5px 12px 5px 5px;border:2.5px solid var(--ink);border-radius:999px;background:var(--c);font-weight:700}
+.pchip.new{animation:popIn .5s var(--bounce) both}
+.pchip small{font-weight:700;opacity:.7}
+.pchip .x{border:0;background:rgba(35,29,92,.15);border-radius:50%;width:24px;height:24px;font-weight:800;padding:0;line-height:1}
+@keyframes popIn{from{opacity:0;transform:scale(.4) rotate(-12deg)}}
+.setting{background:var(--paper);border:3px solid var(--ink);border-radius:var(--r-md);padding:14px;margin-bottom:12px}
+.setting h3{font-size:1.05rem;margin-bottom:10px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg button{border:2.5px solid var(--ink);border-radius:12px;background:#fff;padding:10px 8px;font-weight:800;font-size:1rem;transition:background .2s, transform .2s var(--bounce)}
+.seg button.on{background:var(--blue);color:#fff;transform:translateY(-2px);box-shadow:0 3px 0 var(--ink)}
+.seg button[disabled]{cursor:default}
+.setting p{margin:10px 0 0;color:var(--ink-soft);font-size:.95rem}
+.waiting{display:flex;align-items:center;justify-content:center;gap:10px;font-weight:700;color:var(--ink-soft);padding:14px}
+.dots span{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ink-soft);margin:0 2px;animation:dotty 1.2s infinite}
+.dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
+@keyframes dotty{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-7px)}}
+
+/* ---------- roles ---------- */
+.role{display:inline-flex;align-items:center;gap:8px;font-weight:800;padding:7px 14px;border-radius:999px;border:2.5px solid var(--ink);background:var(--sun);margin-bottom:14px}
+.role.you{background:var(--pink);color:#fff}
+.waitbox{text-align:center;padding:30px 0 10px}
+.waitbox h2{margin-top:20px}
+
+/* pick */
+.pick-row{display:flex;justify-content:center;gap:10px;margin-top:30px}
+.pick{width:58px;height:84px;border:3px solid var(--ink);border-radius:14px;background:var(--c);font-family:var(--marker);font-size:2rem;box-shadow:0 5px 0 var(--ink);
+  animation:dealIn .6s var(--bounce) backwards;animation-delay:calc(var(--i) * 70ms);transition:transform .25s var(--bounce)}
+.pick:active{transform:translateY(3px)}
+.pick.chosen{animation:chosen .7s var(--bounce) forwards}
+.pick.gone{transition:opacity .3s, transform .3s;opacity:.15;transform:scale(.8)}
+@keyframes chosen{50%{transform:translateY(-30px) rotate(12deg) scale(1.3)}100%{transform:translateY(-10px) rotate(0) scale(1.15)}}
+
+/* word card for clue-givers */
+.wordcard{position:relative;background:var(--grape);color:#fff;border:3px solid var(--ink);border-radius:var(--r-lg);padding:16px 18px 20px;box-shadow:0 6px 0 var(--ink);overflow:hidden}
+.wordcard::after{content:"";position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.14)}
+.wc-top{display:flex;justify-content:space-between;font-weight:700;font-size:.92rem;opacity:.9}
+.wc-word{font-family:var(--marker);font-size:clamp(2.3rem, 12vw, 3.4rem);line-height:1.1;margin-top:8px;word-break:break-word;animation:wordPop .7s var(--bounce) both .1s}
+@keyframes wordPop{from{opacity:0;transform:scale(.3) rotate(-8deg)}}
+.wordcard.small{padding:10px 14px 12px;box-shadow:0 4px 0 var(--ink)}
+.wordcard.small .wc-word{font-size:1.9rem;animation:none;margin-top:2px}
+
+/* clue form */
+.clue-form{margin-top:18px}
+.clue-form .field{font-family:var(--marker);font-size:1.7rem;text-transform:uppercase;padding:12px 15px;margin-bottom:10px;font-weight:400}
+.note{background:var(--sun);border:2.5px solid var(--ink);border-radius:12px;padding:8px 12px;font-weight:700;font-size:.95rem;margin-bottom:12px}
+.sent{margin-top:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.sent .mine{font-family:var(--marker);font-size:1.6rem;background:#fff;border:3px solid var(--ink);border-radius:12px;padding:4px 14px;transform:rotate(-2deg);animation:popIn .5s var(--bounce) both}
+
+/* status list */
+.status{display:flex;flex-wrap:wrap;gap:8px}
+.st{display:flex;align-items:center;gap:7px;padding:4px 12px 4px 4px;border:2.5px solid var(--ink);border-radius:999px;background:#fff;font-weight:700;font-size:.95rem;transition:background .3s}
+.st .av{width:30px;height:30px;font-size:1rem;border-width:2px}
+.st b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:rgba(35,29,92,.1);font-size:.85rem}
+.st.done{background:var(--c)}
+.st.done b{background:var(--ink);color:#fff}
+.st.just b{animation:bump .6s var(--bounce)}
+
+/* ---------- the easels (clue cards) ---------- */
+.clues{display:grid;grid-template-columns:1fr 1fr;gap:26px 14px;margin:30px 0 22px}
+.clue{position:relative;background:#fff;border:3px solid var(--ink);border-radius:16px;padding:28px 10px 14px;text-align:center;min-height:118px;
+  box-shadow:0 6px 0 var(--c);transform:rotate(var(--tilt));transition:transform .35s var(--bounce), opacity .3s, box-shadow .3s;
+  animation:dealIn .65s var(--bounce) backwards;animation-delay:calc(var(--i) * 110ms)}
+.clue::before,.clue::after{content:"";position:absolute;bottom:-14px;width:5px;height:16px;background:var(--ink);border-radius:3px}
+.clue::before{left:22%;transform:rotate(14deg)}
+.clue::after{right:22%;transform:rotate(-14deg)}
+@keyframes dealIn{from{opacity:0;transform:translateY(70px) rotate(calc(var(--tilt,0deg) * -6)) scale(.6)}}
+.clue .tag{position:absolute;top:-17px;left:50%;transform:translateX(-50%) rotate(calc(var(--tilt) * -1.6));display:flex;align-items:center;gap:5px;
+  background:var(--c);border:2.5px solid var(--ink);border-radius:999px;padding:3px 11px 3px 4px;font-weight:800;font-size:.9rem;white-space:nowrap;max-width:110%}
+.clue .tag .em{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#fff;border:2px solid var(--ink);font-size:.9rem}
+.clue .word{font-family:var(--marker);font-size:clamp(1.25rem, 6.4vw, 1.75rem);line-height:1.1;word-break:break-word;color:var(--ink);transition:opacity .3s}
+.clue .scribble{position:absolute;left:6%;top:30%;width:88%;height:44px;pointer-events:none;overflow:visible}
+.clue .scribble path{fill:none;stroke:var(--pink);stroke-width:6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:420;stroke-dashoffset:420;transition:stroke-dashoffset .55s ease-in-out}
+.clue.cut{transform:rotate(calc(var(--tilt) * -2)) scale(.94);box-shadow:0 3px 0 rgba(35,29,92,.25)}
+.clue.cut .word{opacity:.35}
+.clue.cut .scribble path{stroke-dashoffset:0}
+.clue.cut .tag{filter:grayscale(.8)}
+.clue .why{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:8px}
+.clue .why span{font-size:.75rem;font-weight:700;background:rgba(255,79,154,.14);color:#B0185A;border-radius:8px;padding:2px 7px}
+.clue .vote{display:flex;justify-content:center;gap:6px;margin-top:8px;font-size:.8rem;font-weight:800}
+.clue .vote span{border-radius:8px;padding:2px 7px;background:rgba(35,29,92,.08)}
+.clue .vote .me-cut{background:var(--pink);color:#fff}
+.clue .vote .me-keep{background:var(--mint)}
+.clue.tappable{cursor:pointer}
+.clue.tappable:active{transform:rotate(var(--tilt)) scale(.95)}
+.clues.big .clue{min-height:132px}
+.clues.big .clue .word{font-size:clamp(1.5rem, 7.5vw, 2.05rem)}
+.clues.faded .clue{opacity:.45;min-height:auto;padding:24px 8px 10px;animation:none}
+.clues.faded .clue .word{text-decoration:line-through;text-decoration-color:var(--pink);text-decoration-thickness:3px;font-size:1.2rem}
+.empty{grid-column:1/-1;text-align:center;font-weight:800;font-size:1.3rem;padding:20px;background:#fff;border:3px dashed var(--ink);border-radius:var(--r-lg)}
+.cutnote{text-align:center;font-weight:700;color:var(--ink-soft);margin:-6px 0 16px}
+.banner{font-weight:800;font-size:1.15rem;margin-top:18px}
+
+.say{text-align:center;font-weight:800;font-size:1.6rem;margin:6px 0 16px;animation:sayPulse 1.8s ease-in-out infinite}
+@keyframes sayPulse{50%{transform:scale(1.06)}}
+.guess-form .field{font-family:var(--marker);font-size:1.8rem;text-transform:uppercase;text-align:center;font-weight:400;margin-bottom:12px}
+
+/* scanner / thinking */
+.scanner{position:relative;width:180px;height:120px;margin:10px auto 0}
+.scanner span{position:absolute;width:62px;height:72px;border:3px solid var(--ink);border-radius:12px;background:#fff;box-shadow:0 4px 0 var(--c);top:24px}
+.scanner span:nth-child(1){left:0;transform:rotate(-10deg);--c:var(--pink)}
+.scanner span:nth-child(2){left:59px;top:12px;--c:var(--sun)}
+.scanner span:nth-child(3){right:0;transform:rotate(10deg);--c:var(--mint)}
+.scanner i{position:absolute;left:-10px;right:-10px;height:4px;border-radius:2px;background:var(--pink);box-shadow:0 0 14px var(--pink);animation:scan 1.5s ease-in-out infinite alternate}
+@keyframes scan{from{top:10px}to{top:104px}}
+.pencil{font-size:4rem;display:inline-block;animation:scribbling 1s ease-in-out infinite}
+@keyframes scribbling{0%,100%{transform:rotate(-12deg) translateX(-10px)}50%{transform:rotate(8deg) translateX(10px)}}
+
+/* result */
+.result-head{text-align:center;padding:16px 0 4px}
+.result-head .big{font-size:3.6rem;font-weight:800;letter-spacing:-.04em;display:inline-block;animation:slam .7s var(--bounce) both}
+@keyframes slam{from{opacity:0;transform:scale(2.6) rotate(-10deg)}}
+.result-head.correct .big{color:#0E9E74}
+.result-head.wrong .big{color:var(--pink)}
+.result-head.pass .big{color:var(--ink-soft)}
+.reveal{text-align:center;margin:14px 0 6px}
+.reveal .w{font-family:var(--marker);font-size:clamp(2.2rem, 11vw, 3.2rem);display:inline-block;background:#fff;border:3px solid var(--ink);border-radius:16px;padding:6px 18px;transform:rotate(-2deg);box-shadow:0 6px 0 var(--sun);margin-top:6px;animation:popIn .6s var(--bounce) both .25s}
+.guessed{text-align:center;font-weight:700;margin:10px 0}
+.guessed span{font-family:var(--marker);font-size:1.3rem}
+.penalty{background:#FFE3EF;border:2.5px solid var(--ink);border-radius:12px;padding:10px 12px;font-weight:700;margin:14px 0;text-align:center}
+
+/* finished */
+.final{text-align:center;padding:24px 0 6px}
+.final-score{font-size:7rem;font-weight:800;line-height:1;letter-spacing:-.05em;display:inline-block;background:var(--sun);border:4px solid var(--ink);border-radius:32px;padding:6px 30px;box-shadow:0 8px 0 var(--ink);transform:rotate(-3deg)}
+.final .of{font-weight:700;color:var(--ink-soft);margin-top:14px}
+.final .rating{font-size:1.5rem;font-weight:800;margin-top:6px}
+.hist{list-style:none;padding:0;margin:22px 0;display:grid;gap:8px}
+.hist li{display:flex;align-items:center;gap:10px;background:#fff;border:2.5px solid var(--ink);border-radius:14px;padding:8px 12px;animation:popIn .45s var(--bounce) both;animation-delay:calc(var(--i) * 60ms + .6s)}
+.hist .ic{font-size:1.2rem}
+.hist .w{font-family:var(--marker);font-size:1.2rem;flex:1}
+.hist small{color:var(--ink-soft);font-weight:700}
+
+/* menu sheet */
+.sheet-bg{position:fixed;inset:0;background:rgba(35,29,92,.35);z-index:50;display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .2s both}
+@keyframes fadeIn{from{opacity:0}}
+.sheet{width:100%;max-width:480px;background:var(--paper);border:3px solid var(--ink);border-bottom:0;border-radius:26px 26px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));animation:sheetUp .35s var(--bounce) both}
+@keyframes sheetUp{from{transform:translateY(100%)}}
+.sheet .btn{width:100%;margin-bottom:10px;justify-content:flex-start}
+
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:40}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+<div id="app"><div id="hud"></div><div id="screen"></div></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<canvas id="confetti"></canvas>
+
+<script>
+/* ============================================================
+   SETTINGS: paste your Supabase details here
+   (Project Settings > API: Project URL and the anon public key)
+   ============================================================ */
+const SUPABASE_URL = 'https://iplyanseihnkyatgpmby.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_lq5p77iHVXEh4sFGyDjg1A_B7MsDGIN';
+
+const CARDS = [["BRANCH","CINDERELLA","CREPE","ISLAND","TAXI"],["SAIL","CHEDDAR","SHREK","POLE","WESTERN"],["VIKING","ALARM","DANCE","HULK","DESERT"],["GOAL","BREAD","DEVIL","PRIMARY","TARZAN"],["SCREW","RAKE","COMPUTER","STARBUCKS","BALL"],["SERIES","NEST","SPICE","ELEPHANT","CARNIVAL"],["VENGEANCE","BOSS","EMERGENCY","CROSS","WALTZ"],["MAFIA","LARGE","MISSILE","MICROSOFT","SKI"],["GENIUS","DRACULA","LION","SOCK","FRIDAY"],["COCKTAIL","MARIO","CORK","VIOLIN","PEACH"],["RAT","PLIER","AMAZON","TOBACCO","RULER"],["HANUKKAH","ELASTIC","PAN","FLASH","TUNNEL"],["FOX","POLICE","SIMPSON","LIGHTNING","NEWSPAPER"],["MOUNTAIN","PEANUT","LIGHTBULB","JEDI","PIMENTO"],["SOMBRERO","CLOVER","BUTTON","CHEESE","CHEWBACCA"],["WIDOWMAKER","DOCTOR","STRAWBERRY","NUCLEAR","LOTTERY"],["CEMETERY","CUPID","UMBRELLA","LEAP","ROOT"],["TREASURE","PILOT","MICKEY","SEWER","GALAXY"],["MYTH","FACEBOOK","ACORN","BONE","BRIDGE"],["CRANE","OPERATION","RAP","MUSE","DEFENSE"],["LIGHT","SOFA","MOZART","RING","PIZZA"],["KNIGHT","PEACE","FLOWER","SWITZERLAND","CALENDAR"],["SYRUP","FOREST","SCALE","ZEUS","COCKROACH"],["PIRATE","VACATION","ELF","MAGNET","FORK"],["BUFFY","VOLCANO","PASSION","ROOSTER","ELECTRICITY"],["BAKER","PERFUME","FLAME","ZOMBIE","JOKER"],["POISON","STAR","WOLF","JONES","ANNIVERSARY"],["HAMMER","CHILE","GUMBO","EMPEROR","POPE"],["HOLLYWOOD","MOSQUITO","SPEAR","PURSE","END"],["BOARD","FIREMAN","GLASS","BURRITO","GREECE"],["SLIPPER","LEAF","COUGAR","REVOLUTION","SAHARA"],["GROTTO","FORD","CASINO","CANDY","FOUNTAIN"],["FLINTSTONE","ROBOT","COMEDY","LANGUAGE","HAIRDRESSER"],["DINOSAUR","YELLOW","MUSHROOM","PIGEON","PIKACHU"],["THUNDER","GARDEN","PAINTING","SHACK","TRUCE"],["MUMMY","BATTERY","FAIR","KARATE","PARROT"],["OLYMPICS","CLIMB","LAWYER","TOLKIEN","RIVER"],["CARPET","PONY","CROWN","NEW","TARANTINO"],["BARBIE","CHOCOLATE","SNOW","TIE","WIND"],["THOUGHT","FRANKENSTEIN","SHELF","ACCENT","SHOWER"],["STEW","CANADA","ZOO","PIPE","BOOK"],["TOWEL","VENUS","OCTOPUS","CYCLE","OPERA"],["LADYBUG","MUSTARD","SHERLOCK","BOTTLE","VIRUS"],["MUSIC","THROAT","AMERICA","COFFEE","FEVER"],["GOOGLE","BOW","MARS","GOLF","TICKET"],["REGISTER","PLAYSTATION","BLOND","IRIS","LIMB"],["OPRAH","NINJA","COMFORTER","HUNTER","VEGETABLE"],["OVEN","SOCKET","EASTER","HOSE","RAIL"],["BUTTERFLY","POWDER","PORCELAIN","MARKET","COCOON"],["BARBECUE","PANDA","DREAM","MARRIAGE","BELLYBUTTON"],["CAVITY","SLEEVE","GREMLINS","POKER","PIE"],["SUGAR","THEATER","SHOVEL","DUNE","PREGNANT"],["CAT","PALACE","ELECTION","HONEY","RAMBO"],["REGGAE","MANURE","LAKE","MONKEY","LIGHTHOUSE"],["NEIGHBORHOOD","ROCK","TIGER","NEEDLE","SOAP"],["PRISON","HOLE","PUNK","EVENING","MAP"],["NUMBER","DECATHLON","RUM","METAL","TUNA"],["KING","BALLET","BAND","ALCOHOL","LAVA"],["CANVAS","VAMPIRE","MONOPOLY","CARTOON","HOTEL"],["DARWIN","TOMATO","PARACHUTE","CANNON","BINOCULARS"],["MIRAGE","RAMSES","BONFIRE","CROSSROADS","PRINCESS"],["GUILLOTINE","MAGICIAN","HOCKEY","BANANA","FITZGERALD"],["CAESAR","NOODLE","HAT","DENTIST","WHEAT"],["SHELL","SHAKESPEARE","GIANT","FOAM","CAVE"],["KNIFE","PILLOW","ARMSTRONG","SWORD","FLIGHT"],["EXPLOSION","PENGUIN","CELL","GANDHI","OASIS"],["CROCODILE","JEWELRY","SUBWAY","GLASSES","STING"],["JACKSON","CIGARETTE","BRACELET","WEATHER","TOWER"],["TATTOO","SPIELBERG","APPLE","SIREN","BOXING"],["HEART","MOSCOW","POOL","UNICORN","ORANGE"],["MELON","ANCHOR","ISRAEL","CACTUS","TENNIS"],["PEPPER","TRIANGLE","DOLL","ITALY","SCENE"],["POLAR","MOUSE","NECKLACE","FARM","BELGIUM"],["FRANCE","MOON","CAFETERIA","HANDLE","TOOL"],["STRING","AUSTRALIA","CASTLE","GUARD","SHEEP"],["PUPPET","GAME","VEGAS","SAFE","PLANE"],["BRAIN","MASK","CONCERT","TROY","SHARK"],["LONELY","POTATO","WAVE","SCHOOL","LEGO"],["TOKYO","HEEL","CHICKEN","HELICOPTER","COLONEL"],["TRADITION","SNAKE","CUP","PICASSO","WATCH"],["CAKE","STALLION","MEXICO","WHITE","BALD"],["CATERPILLAR","HUMOR","CORNER","ANTARCTICA","SAUSAGE"],["PLASTIC","RAY","CARTON","PEBBLE","EVEREST"],["TERMINATOR","LETTER","DRAG","PARADISE","EGG"],["NINTENDO","BET","SALT","MANUAL","FROST"],["HOUSE","GODFATHER","WAR","ROPE","WINE"],["CLUB","CHRISTMAS","FASHION","STATION","LAMP"],["RADIO","PEAR","GLADIATOR","SUN","CEREAL"],["BERRY","STUDY","GOTHIC","TITANIC","MACHINE"],["DWARF","CIRCUS","ELVIS","MOWER","STONE"],["TRAIN","SHRIMP","ROOM","CLEOPATRA","WINDOW"],["TANGO","RIPE","TEMPLE","SAND","FRIES"],["GRENADE","STUFFING","BRUSH","PIG","HUMAN"],["ALCATRAZ","SMOKE","HAZELNUT","DIAMOND","ROSE"],["GODZILLA","UNIFORM","RAIN","FIRE","HELMET"],["SHIP","BOWLING","CHURCHILL","RAM","SPY"],["HALLOWEEN","CHIP","BABY","CANTEEN","PAIR"],["FAILURE","HISTORY","BEER","DISCO","PRESIDENT"],["MIRROR","PROM","BATH","PIT","FAIRY"],["LADDER","ANGEL","MAD","HAIR","MATRIX"],["MUSTACHE","BUBBLE","CHAIN","STARK","COOKIE"],["AVATAR","MILL","JUNGLE","NUN","FIRECRACKER"],["IRON","BATMAN","SONG","NILE","CINEMA"],["PUMP","ALADDIN","TUBE","BELT","BAR"],["MOUTH","CAROUSEL","PSYCHO","GRASS","FALL"],["DOPING","GARLIC","CUBE","ROCKY","MILK"],["ICE","FLUTE","CHAMPAGNE","SAFARI","ALIEN"],["CANE","MUSKETEER","THREAD","TULIP","IKEA"],["CROISSANT","GHOST","STRAW","NAIL","POTTER"],["SPARTACUS","FUR","TORNADO","PYRAMID","ALLIANCE"]];
+const DECK_SIZE = 13;
+const EMOJIS = ['🦊','🐸','🐙','🦄','🐼','🦖','🐝','🦉','🐳','🦁','🐧','🌵','🍕','🚀','👾','🍩'];
+const COLOURS = ['#FF7DB0','#6FA8FF','#FFA552','#B795FF','#4FE0B6','#FFD84D','#5FDAF5','#BFF261'];
+const TILTS = ['-2.5deg','2deg','-1deg','3deg','1.5deg','-3deg','-1.5deg','2.5deg'];
+const SETTINGS = [
+  {key:'play', title:'Where are you playing?', opts:[
+    ['room','🛋️ Same room','The guesser says their answer out loud. The team taps right or wrong.'],
+    ['remote','🌍 Apart','The guesser types their answer and the app marks it. The team can overrule.']]},
+  {key:'scoring', title:'Scoring', opts:[
+    ['official','📏 Official','A wrong guess loses that card and the next one.'],
+    ['gentle','🧸 Gentle','A wrong guess only loses that card.']]},
+  {key:'review', title:'Cutting clues', opts:[
+    ['anyone','✂️ Anyone','Anyone can cut a clue or bring it back.'],
+    ['majority','🗳️ Majority','Everyone votes on each clue. Most votes wins.']]},
+];
+
+/* ---------- small helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const uuid = () => (crypto.randomUUID ? crypto.randomUUID() :
+  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); }));
+function store(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+function load(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } }
+function drop(k){ try { localStorage.removeItem(k); } catch(e){} }
+let toastTimer;
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2600); }
+function buzz(ms = 40){ try { navigator.vibrate && navigator.vibrate(ms); } catch(e){} }
+
+/* ---------- word matching ---------- */
+const norm = s => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+function stem(w){
+  if (w.length > 4) {
+    if (w.endsWith('ies')) return w.slice(0, -3) + 'y';
+    if (w.endsWith('ves')) return w.slice(0, -3) + 'f';
+    if (/(ches|shes|xes|sses|zes)$/.test(w)) return w.slice(0, -2);
+    if (w.endsWith('ing') && w.length > 5) return w.slice(0, -3);
+    if (w.endsWith('ed') && w.length > 4) return w.slice(0, -2);
+  }
+  if (w.length > 3 && w.endsWith('s') && !w.endsWith('ss')) return w.slice(0, -1);
+  return w;
+}
+function lev(a, b){
+  if (Math.abs(a.length - b.length) > 2) return 9;
+  let prev = Array.from({length: b.length + 1}, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j-1] + 1, prev[j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+function similar(a, b){
+  if (!a || !b) return false;
+  if (a === b || stem(a) === stem(b)) return true;
+  const m = Math.min(a.length, b.length), d = lev(a, b);
+  return (m >= 5 && d <= 1) || (m >= 8 && d <= 2);
+}
+function closeToWord(c, w){
+  if (similar(c, w)) return true;
+  if (w.length >= 4 && c.includes(w)) return true;
+  if (w.length === 3 && c.startsWith(w)) return true;
+  if (c.length >= 4 && w.includes(c)) return true;
+  const s = stem(c);
+  return s.length >= 4 && w.includes(s);
+}
+function guessMatches(g, w){
+  const a = norm(g), b = norm(w);
+  if (!a) return false;
+  if (a === b || stem(a) === stem(b)) return true;
+  const d = lev(a, b);
+  return (b.length >= 5 && d <= 1) || (b.length >= 9 && d <= 2);
+}
+
+/* ---------- state ---------- */
+let me = load('jo_me');
+if (!me || !me.id) { me = { id: uuid(), name: '', emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)] }; store('jo_me', me); }
+const S = { code: null, room: null, players: [], clues: [], votes: [], channel: null, poll: null, viewKey: null,
+  editing: false, seen: new Set(), lastScore: null, busy: false, again: false, wake: null };
+let db = null;
+
+const pById = id => S.players.find(p => p.id === id);
+const pName = id => pById(id)?.name || 'Someone';
+const col = p => COLOURS[(p?.colour ?? 0) % COLOURS.length];
+const active = () => S.players.filter(p => !p.left_game);
+const isHost = () => S.room?.host_id === me.id;
+const amGuesser = () => S.room?.guesser_id === me.id;
+const guesser = () => pById(S.room?.guesser_id) || { name: 'The guesser', emoji: '🎯', colour: 0 };
+function orderedActive(){
+  return (S.room?.player_order || []).map(pById).filter(p => p && !p.left_game);
+}
+function givers(){ return orderedActive().filter(p => p.id !== S.room.guesser_id); }
+function currentWord(){
+  const r = S.room; const card = CARDS[r.deck[r.deck_pos]];
+  return card ? card[(r.word_slot || 1) - 1] : '';
+}
+function avatar(p, cls = ''){ return `<span class="av ${cls}" style="--c:${col(p)}">${esc(p.emoji)}</span>`; }
+function joinNames(names){ return names.length < 2 ? names[0] : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1]; }
+function joinUrl(){ return location.origin + location.pathname + '?room=' + S.code; }
+
+/* ---------- clue checking ---------- */
+function sortedClues(){
+  const order = orderedActive().map(p => p.id);
+  return [...S.clues].sort((a, b) => (order.indexOf(a.player_id) - order.indexOf(b.player_id)) || (a.slot - b.slot));
+}
+function analyse(){
+  const w = norm(currentWord());
+  const list = S.clues.map(c => ({ c, n: norm(c.clue) }));
+  const out = {};
+  for (const a of list) {
+    const reasons = [];
+    if (!a.n) reasons.push('Empty');
+    if (/\s/.test(a.c.clue.trim())) reasons.push('More than one word');
+    if (a.n && closeToWord(a.n, w)) reasons.push('Too close to the answer');
+    const twins = list.filter(b => b !== a && b.n && a.n && similar(a.n, b.n));
+    if (twins.length) {
+      const exact = twins.some(b => b.n === a.n);
+      const names = [...new Set(twins.map(b => b.c.player_id === a.c.player_id ? 'their other clue' : pName(b.c.player_id)))];
+      reasons.push((exact ? 'Same as ' : 'Too like ') + joinNames(names));
+    }
+    out[a.c.id] = { auto: reasons.length > 0, reasons };
+  }
+  return out;
+}
+function clueState(c, an){
+  const auto = an[c.id]?.auto || false;
+  if (S.room.settings.review === 'majority') {
+    const g = givers();
+    const myVote = (() => { const v = S.votes.find(v => v.clue_id === c.id && v.voter_id === me.id); return v ? v.strike : auto; })();
+    let strikes = 0;
+    for (const p of g) { const v = S.votes.find(v => v.clue_id === c.id && v.voter_id === p.id); if (v ? v.strike : auto) strikes++; }
+    const n = g.length;
+    const struck = strikes * 2 > n ? true : strikes * 2 < n ? false : auto;
+    return { struck, strikes, n, myVote };
+  }
+  return { struck: c.struck === null || c.struck === undefined ? auto : c.struck };
+}
+
+/* ---------- Supabase plumbing ---------- */
+let refreshTimer;
+function queueRefresh(){ clearTimeout(refreshTimer); refreshTimer = setTimeout(refresh, 120); }
+async function refresh(){
+  if (!S.code) return;
+  if (S.busy) { S.again = true; return; }
+  S.busy = true;
+  try {
+    const { data: room, error } = await db.from('jo_rooms').select('*').eq('code', S.code).maybeSingle();
+    if (error) throw error;
+    if (!room) { leaveLocal('That room has closed'); return; }
+    const [p, c, v] = await Promise.all([
+      db.from('jo_players').select('*').eq('room_code', S.code).order('joined_at'),
+      db.from('jo_clues').select('*').eq('room_code', S.code).eq('round', room.round),
+      db.from('jo_votes').select('*').eq('room_code', S.code).eq('round', room.round),
+    ]);
+    S.room = room; S.players = p.data || []; S.clues = c.data || []; S.votes = v.data || [];
+    render();
+    autoAdvance();
+  } catch (e) {
+    console.error(e);
+  } finally {
+    S.busy = false;
+    if (S.again) { S.again = false; queueRefresh(); }
+  }
+}
+function subscribe(code){
+  if (S.channel) db.removeChannel(S.channel);
+  const f = { schema: 'public' };
+  S.channel = db.channel('jo-' + code)
+    .on('postgres_changes', { ...f, event: '*', table: 'jo_rooms', filter: `code=eq.${code}` }, queueRefresh)
+    .on('postgres_changes', { ...f, event: '*', table: 'jo_players', filter: `room_code=eq.${code}` }, queueRefresh)
+    .on('postgres_changes', { ...f, event: '*', table: 'jo_clues', filter: `room_code=eq.${code}` }, queueRefresh)
+    .on('postgres_changes', { ...f, event: '*', table: 'jo_votes', filter: `room_code=eq.${code}` }, queueRefresh)
+    .subscribe();
+  clearInterval(S.poll);
+  S.poll = setInterval(refresh, 4000); // safety net if a phone drops the live connection
+}
+async function roomUpdate(patch, conds = {}){
+  let q = db.from('jo_rooms').update({ ...patch, updated_at: new Date().toISOString() }).eq('code', S.code);
+  for (const [k, v] of Object.entries(conds)) q = Array.isArray(v) ? q.in(k, v) : q.eq(k, v);
+  const { error } = await q;
+  if (error) { console.error(error); toast('Couldn’t save that. Check your connection.'); }
+  queueRefresh();
+}
+const setPhase = (from, to, extra = {}) => roomUpdate({ phase: to, ...extra }, { round: S.room.round, phase: from });
+
+async function autoAdvance(){
+  const r = S.room;
+  if (!r) return;
+  // pass the host role on if the host has left
+  const host = pById(r.host_id);
+  if ((!host || host.left_game) && active()[0]?.id === me.id) roomUpdate({ host_id: me.id }, { host_id: r.host_id });
+  if (r.status !== 'playing') return;
+  const g = givers();
+  if (r.phase === 'clues' && g.length) {
+    const done = g.every(p => S.clues.filter(c => c.player_id === p.id).length >= r.clue_slots);
+    if (done) setPhase('clues', 'review');
+  } else if (r.phase === 'review' && g.length) {
+    if (g.every(p => p.ready_round === r.round)) setPhase('review', 'guess');
+  }
+}
+
+/* ---------- joining ---------- */
+function genCode(){ const L = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; return Array.from({length: 4}, () => L[Math.floor(Math.random() * L.length)]).join(''); }
+function saveMe(){ const n = $('#nm'); if (n) me.name = n.value.trim().slice(0, 14); store('jo_me', me); }
+async function createRoom(){
+  saveMe();
+  if (!me.name) { toast('Type your name first'); $('#nm').focus(); return; }
+  for (let i = 0; i < 6; i++) {
+    const code = genCode();
+    const { error } = await db.from('jo_rooms').insert({ code, host_id: me.id });
+    if (!error) return joinRoom(code);
+    if (error.code !== '23505') { console.error(error); toast('Couldn’t create a room. Check the Supabase settings.'); return; }
+  }
+}
+async function joinRoom(code){
+  saveMe();
+  code = (code || '').toUpperCase().trim();
+  if (!me.name) { toast('Type your name first'); $('#nm')?.focus(); return; }
+  if (code.length !== 4) { toast('Room codes have 4 letters'); return; }
+  const { data: room } = await db.from('jo_rooms').select('*').eq('code', code).maybeSingle();
+  if (!room) { toast(`No room called ${code}. Check the code.`); return; }
+  const { data: players } = await db.from('jo_players').select('*').eq('room_code', code);
+  const existing = (players || []).find(p => p.id === me.id);
+  const activeCount = (players || []).filter(p => !p.left_game).length;
+  if (!existing && activeCount >= 8) { toast('That room is full (8 players max)'); return; }
+  let colour = existing?.colour;
+  if (colour === undefined) {
+    const taken = new Set((players || []).filter(p => !p.left_game).map(p => p.colour));
+    colour = [...Array(8).keys()].find(i => !taken.has(i)) ?? 0;
+  }
+  const { error } = await db.from('jo_players').upsert(
+    { room_code: code, id: me.id, name: me.name, emoji: me.emoji, colour, left_game: false },
+    { onConflict: 'room_code,id' });
+  if (error) { console.error(error); toast('Couldn’t join. Try again.'); return; }
+  if (room.status !== 'lobby' && !room.player_order.includes(me.id)) {
+    await db.from('jo_rooms').update({ player_order: [...room.player_order, me.id] }).eq('code', code);
+  }
+  enterRoom(code);
+}
+function enterRoom(code){
+  S.code = code; S.viewKey = null; S.seen = new Set(); S.lastScore = null;
+  store('jo_session', { code });
+  history.replaceState(null, '', '?room=' + code);
+  subscribe(code);
+  keepAwake();
+  refresh();
+}
+function leaveLocal(msg){
+  if (S.channel) db.removeChannel(S.channel);
+  clearInterval(S.poll);
+  S.code = null; S.room = null; S.channel = null; S.viewKey = null;
+  drop('jo_session');
+  history.replaceState(null, '', location.pathname);
+  $('#hud').innerHTML = ''; S.hudHtml = '';
+  if (msg) toast(msg);
+  viewHome('');
+}
+async function leaveRoom(){
+  closeMenu();
+  await db.from('jo_players').update({ left_game: true }).eq('room_code', S.code).eq('id', me.id);
+  if (isHost()) { const next = active().find(p => p.id !== me.id); if (next) await db.from('jo_rooms').update({ host_id: next.id }).eq('code', S.code); }
+  leaveLocal('You left the room');
+}
+async function keepAwake(){
+  try { if ('wakeLock' in navigator && !S.wake) { S.wake = await navigator.wakeLock.request('screen'); S.wake.addEventListener('release', () => S.wake = null); } } catch(e){}
+}
+
+/* ---------- game actions ---------- */
+function nextGuesserId(turn, order){
+  const act = order.filter(id => { const p = pById(id); return p && !p.left_game; });
+  return act.length ? act[turn % act.length] : null;
+}
+async function startGame(){
+  const r = S.room, ps = active();
+  if (ps.length < 3) { toast('You need at least 3 players'); return; }
+  let used = r.used_cards || [];
+  let pool = CARDS.map((_, i) => i).filter(i => !used.includes(i));
+  if (pool.length < DECK_SIZE) { pool = CARDS.map((_, i) => i); used = []; }
+  const deck = shuffle(pool).slice(0, DECK_SIZE);
+  const order = ps.map(p => p.id);
+  await roomUpdate({
+    status: 'playing', phase: 'pick', deck, deck_pos: 0, score: 0, history: [],
+    round: r.round + 1, turn: r.turn, guesser_id: nextGuesserId(r.turn, order),
+    clue_slots: ps.length === 3 ? 2 : 1, player_order: order, used_cards: [...used, ...deck],
+    game_no: r.game_no + 1, guess: null, result: null, word_slot: null,
+  }, { status: ['lobby', 'finished'] });
+}
+async function nextCard(){
+  const r = S.room, official = r.settings.scoring === 'official';
+  let score = r.score, pos = r.deck_pos;
+  const hist = [...(r.history || [])];
+  const entry = { word: currentWord(), by: guesser().name };
+  if (r.result === 'correct') { score++; hist.push({ ...entry, out: 'won' }); pos++; }
+  else if (r.result === 'pass') { hist.push({ ...entry, out: 'passed' }); pos++; }
+  else {
+    hist.push({ ...entry, out: 'wrong' }); pos++;
+    if (official) {
+      if (pos < DECK_SIZE) { hist.push({ word: null, out: 'discarded' }); pos++; }
+      else { score = Math.max(0, score - 1); hist[hist.length - 1].penalty = true; }
+    }
+  }
+  const base = { score, deck_pos: pos, history: hist, guess: null, result: null, word_slot: null };
+  if (pos >= DECK_SIZE) {
+    await roomUpdate({ ...base, status: 'finished', phase: null, turn: r.turn + 1 }, { round: r.round, phase: 'result' });
+  } else {
+    const act = orderedActive();
+    await roomUpdate({ ...base, phase: 'pick', round: r.round + 1, turn: r.turn + 1,
+      guesser_id: nextGuesserId(r.turn + 1, r.player_order), clue_slots: act.length === 3 ? 2 : 1 },
+      { round: r.round, phase: 'result' });
+  }
+}
+async function sendClues(){
+  if (S.room.phase !== 'clues') return;
+  const inputs = [...document.querySelectorAll('.clue-in')];
+  const vals = inputs.map(i => i.value.trim());
+  if (vals.some(v => !v)) { toast(vals.length > 1 ? 'Fill in both clues' : 'Type a clue first'); return; }
+  if (vals.some(v => /\s/.test(v))) { toast('One word only, no spaces'); return; }
+  const rows = vals.map((v, i) => ({ room_code: S.code, round: S.room.round, player_id: me.id, slot: i + 1, clue: v.toUpperCase().slice(0, 24), struck: null }));
+  const { error } = await db.from('jo_clues').upsert(rows, { onConflict: 'room_code,round,player_id,slot' });
+  if (error) { console.error(error); toast('Couldn’t send that. Try again.'); return; }
+  buzz(30);
+  S.editing = false;
+  rows.forEach(row => { const i = S.clues.findIndex(c => c.player_id === me.id && c.slot === row.slot); if (i >= 0) S.clues[i] = { ...S.clues[i], ...row }; else S.clues.push({ ...row, id: -row.slot }); });
+  render();
+  queueRefresh();
+}
+async function toggleClue(id){
+  if (S.room.phase !== 'review') return;
+  const c = S.clues.find(c => c.id === id); if (!c) return;
+  const an = analyse(), st = clueState(c, an);
+  buzz(20);
+  if (S.room.settings.review === 'majority') {
+    const strike = !st.myVote;
+    S.votes = S.votes.filter(v => !(v.clue_id === id && v.voter_id === me.id)).concat({ clue_id: id, voter_id: me.id, strike });
+    patchReview();
+    await db.from('jo_votes').upsert({ room_code: S.code, round: S.room.round, voter_id: me.id, clue_id: id, strike }, { onConflict: 'room_code,round,voter_id,clue_id' });
+  } else {
+    c.struck = !st.struck;
+    patchReview();
+    await db.from('jo_clues').update({ struck: c.struck }).eq('id', id);
+  }
+  queueRefresh();
+}
+async function setReady(){
+  const mine = pById(me.id);
+  const val = mine.ready_round === S.room.round ? -1 : S.room.round;
+  mine.ready_round = val; patchReview(); patchStatus('ready');
+  await db.from('jo_players').update({ ready_round: val }).eq('room_code', S.code).eq('id', me.id);
+  queueRefresh();
+}
+async function sendGuess(){
+  const g = $('#guessIn').value.trim();
+  if (!g) { toast('Type a guess, or pass'); return; }
+  await setPhase('guess', 'result', { guess: g.toUpperCase().slice(0, 30), result: guessMatches(g, currentWord()) ? 'correct' : 'wrong' });
+}
+
+/* ---------- menu ---------- */
+function openMenu(){
+  const r = S.room, items = [['share', '🔗 Share invite link']];
+  if (r.status === 'playing' && isHost()) items.push(['skip', '⏭️ Skip this card (counts as a pass)']);
+  if (r.status !== 'lobby' && isHost()) items.push(['tolobby', '🏠 Back to the lobby']);
+  items.push(['leave', '👋 Leave this room']);
+  const bg = document.createElement('div');
+  bg.className = 'sheet-bg'; bg.id = 'sheet';
+  bg.innerHTML = `<div class="sheet">${items.map(([a, t]) => `<button class="btn ghost" data-act="${a}">${t}</button>`).join('')}
+    <button class="btn" data-act="closeMenu" style="width:100%">Close</button></div>`;
+  bg.addEventListener('click', e => { if (e.target === bg) closeMenu(); });
+  document.body.appendChild(bg);
+}
+function closeMenu(){ $('#sheet')?.remove(); }
+async function share(){
+  closeMenu();
+  const url = joinUrl();
+  try {
+    if (navigator.share) { await navigator.share({ title: 'Just One', text: `Join my Just One game. Room ${S.code}`, url }); return; }
+    await navigator.clipboard.writeText(url); toast('Link copied');
+  } catch(e){ /* share sheet dismissed */ }
+}
+
+/* ---------- actions (delegated) ---------- */
+const ACTIONS = {
+  emoji: b => { me.emoji = b.dataset.e; store('jo_me', me); document.querySelectorAll('.emojis button').forEach(x => x.classList.toggle('on', x === b)); buzz(15); },
+  create: () => createRoom(),
+  join: () => joinRoom($('#codeIn').value),
+  menu: () => openMenu(),
+  closeMenu: () => closeMenu(),
+  share: () => share(),
+  leave: () => leaveRoom(),
+  set: b => { if (!isHost()) return; roomUpdate({ settings: { ...S.room.settings, [b.dataset.k]: b.dataset.v } }, { status: 'lobby' }); },
+  kick: b => db.from('jo_players').update({ left_game: true }).eq('room_code', S.code).eq('id', b.dataset.id).then(queueRefresh),
+  start: () => startGame(),
+  pick: b => {
+    if (!amGuesser()) return;
+    document.querySelectorAll('.pick').forEach(x => { x.disabled = true; x.classList.add(x === b ? 'chosen' : 'gone'); });
+    buzz(50);
+    setTimeout(() => setPhase('pick', 'clues', { word_slot: +b.dataset.n }), 650);
+  },
+  change: () => { S.editing = true; render(); },
+  skipwait: () => setPhase(S.room.phase, S.room.phase === 'clues' ? 'review' : 'guess'),
+  toggle: b => toggleClue(+b.dataset.id),
+  ready: () => setReady(),
+  pass: () => setPhase('guess', 'result', { result: 'pass', guess: null }),
+  correct: () => setPhase('guess', 'result', { result: 'correct' }),
+  wrong: () => setPhase('guess', 'result', { result: 'wrong' }),
+  overrule: b => roomUpdate({ result: b.dataset.to }, { round: S.room.round, phase: 'result' }),
+  next: b => { b.disabled = true; nextCard(); },
+  again: () => startGame(),
+  tolobby: () => { closeMenu(); roomUpdate({ status: 'lobby', phase: null }); },
+  skip: () => { closeMenu(); roomUpdate({ phase: 'result', result: 'pass', guess: null, word_slot: S.room.word_slot || 1 },
+                 { round: S.room.round, phase: ['pick', 'clues', 'review', 'guess'] }); },
+};
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (b && ACTIONS[b.dataset.act]) ACTIONS[b.dataset.act](b, e);
+});
+
+/* ---------- rendering ---------- */
+function mount(key, html, after){
+  if (S.viewKey === key) return false;
+  S.viewKey = key;
+  $('#screen').innerHTML = html;
+  window.scrollTo(0, 0);
+  after && after();
+  return true;
+}
+function render(){
+  const r = S.room; if (!r) return;
+  const mine = pById(me.id);
+  if (!mine || mine.left_game) { leaveLocal('You’re no longer in this room'); return; }
+  renderHud();
+  if (r.status === 'lobby') return viewLobby();
+  if (r.status === 'finished') return viewFinished();
+  ({ pick: viewPick, clues: viewClues, review: viewReview, guess: viewGuess, result: viewResult }[r.phase] || viewPick)();
+}
+function renderHud(){
+  const r = S.room;
+  const playing = r.status !== 'lobby';
+  let dots = '';
+  if (playing) {
+    const h = r.history || [];
+    dots = `<div class="track" aria-label="Card ${Math.min(r.deck_pos + 1, DECK_SIZE)} of ${DECK_SIZE}">${Array.from({length: DECK_SIZE}, (_, i) =>
+      `<span class="dot ${h[i] ? (h[i].out === 'won' ? 'won' : 'lost') : (i === r.deck_pos && r.status === 'playing' ? 'now' : '')}"></span>`).join('')}</div>`;
+  }
+  const bumped = S.lastScore !== null && r.score > S.lastScore;
+  S.lastScore = r.score;
+  const html = `<div class="hud-row">
+      <div class="mini-logo"><i>1</i>Just One</div>
+      ${playing ? `<span class="chip score" aria-label="Score">⭐ <b class="${bumped ? 'bump' : ''}">${r.score}</b></span>` : ''}
+      <button class="chip" data-act="menu" aria-label="Room menu">${esc(r.code)} ☰</button>
+    </div>${dots}`;
+  if (html !== S.hudHtml) { S.hudHtml = html; $('#hud').innerHTML = html; }
+}
+
+function viewHome(prefill){
+  S.viewKey = 'home';
+  $('#hud').innerHTML = ''; S.hudHtml = '';
+  const letters = [['O', '#FF4F9A', '-8deg'], ['N', '#3B6CFF', '5deg'], ['E', '#16B386', '-4deg']];
+  $('#screen').innerHTML = `<section class="screen">
+    <div class="hero">
+      <h1 class="logo" aria-label="Just One">Just
+        <span class="easels">${letters.map(([l, c, r], i) => `<span style="--c:${c};--r:${r};--i:${i}">${l}</span>`).join('')}</span>
+      </h1>
+      <p class="tagline">Everyone writes a one-word clue. Any clue that matches someone else’s gets binned.</p>
+    </div>
+    <div class="panel">
+      <label class="lbl" for="nm">Your name</label>
+      <input class="field" id="nm" maxlength="14" autocomplete="nickname" value="${esc(me.name)}" placeholder="Name">
+      <div style="height:16px"></div>
+      <span class="lbl">Your face</span>
+      <div class="emojis">${EMOJIS.map(e => `<button data-act="emoji" data-e="${e}" class="${e === me.emoji ? 'on' : ''}" aria-label="${e}">${e}</button>`).join('')}</div>
+    </div>
+    <div style="height:18px"></div>
+    <div class="panel">
+      ${prefill ? '' : `<button class="btn big pink" data-act="create">Start a new room</button><div class="or">or join a room</div>`}
+      <div class="join-row">
+        <input class="field" id="codeIn" maxlength="4" placeholder="CODE" autocapitalize="characters" autocomplete="off" value="${esc(prefill)}">
+        <button class="btn blue" data-act="join">Join</button>
+      </div>
+      ${prefill ? `<button class="link-btn" data-act="create">Start a new room instead</button>` : ''}
+    </div>
+    <details class="how panel" style="margin-top:18px">
+      <summary>How to play</summary>
+      <ol>
+        <li>You play as a team through 13 cards. One player guesses each card, and everyone takes a turn.</li>
+        <li>The guesser picks a number from 1 to 5. Everyone else sees the word on their phone.</li>
+        <li>Each clue-giver types a one-word clue. With 3 players, you each give two.</li>
+        <li>Clues that match are cut. So are clues too close to the answer. The team checks and can cut or keep anything.</li>
+        <li>The guesser sees what’s left and has one guess. Get it right to win the card.</li>
+      </ol>
+    </details>
+  </section>`;
+  $('#codeIn').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(e.target.value); });
+  $('#nm').addEventListener('input', saveMe);
+}
+
+function viewLobby(){
+  const r = S.room;
+  const tiles = ['#FF7DB0', '#FFD84D', '#6FA8FF', '#4FE0B6'];
+  mount('lobby', `<section class="screen">
+    <div class="panel room-card">
+      <div class="lbl">Join with this code</div>
+      <div class="room-code">${[...r.code].map((ch, i) => `<span style="--c:${tiles[i]};--r:${TILTS[i]}">${esc(ch)}</span>`).join('')}</div>
+      <div class="qr" id="qr" aria-label="QR code to join"></div>
+      <button class="btn ghost small" data-act="share">Share invite link</button>
+    </div>
+    <div class="section-title">Players <span class="count" id="pcount"></span></div>
+    <div class="plist" id="plist"></div>
+    <div class="section-title">Game settings</div>
+    <div id="settings"></div>
+    <div id="startArea" style="margin-top:20px"></div>
+  </section>`, drawQR);
+
+  const ps = active();
+  $('#pcount').textContent = ps.length;
+  $('#plist').innerHTML = ps.map(p => {
+    const fresh = !S.seen.has('p' + p.id); S.seen.add('p' + p.id);
+    return `<div class="pchip ${fresh ? 'new' : ''}" style="--c:${col(p)}">${avatar(p)}${esc(p.name)}
+      ${p.id === r.host_id ? '<small>host</small>' : ''}${p.id === me.id ? '<small>you</small>' : ''}
+      ${isHost() && p.id !== me.id ? `<button class="x" data-act="kick" data-id="${p.id}" aria-label="Remove ${esc(p.name)}">×</button>` : ''}</div>`;
+  }).join('');
+  $('#settings').innerHTML = SETTINGS.map(s => {
+    const cur = r.settings[s.key];
+    return `<div class="setting"><h3>${s.title}</h3><div class="seg">
+      ${s.opts.map(([v, label]) => `<button data-act="set" data-k="${s.key}" data-v="${v}" class="${cur === v ? 'on' : ''}" ${isHost() ? '' : 'disabled'}>${label}</button>`).join('')}
+      </div><p>${s.opts.find(o => o[0] === cur)?.[2] || ''}</p></div>`;
+  }).join('');
+  $('#startArea').innerHTML = isHost()
+    ? `<button class="btn big pink" data-act="start" ${ps.length < 3 ? 'disabled' : ''}>Start the game</button>
+       ${ps.length < 3 ? `<p class="sub center">You need at least 3 players. Waiting for ${3 - ps.length} more.</p>` : ''}`
+    : `<div class="waiting">Waiting for ${esc(pName(r.host_id))} to start <span class="dots"><span></span><span></span><span></span></span></div>`;
+}
+function drawQR(){
+  const el = $('#qr');
+  if (!el || typeof qrcode === 'undefined') { el && (el.style.display = 'none'); return; }
+  const q = qrcode(0, 'M'); q.addData(joinUrl()); q.make();
+  el.innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+}
+
+function viewPick(){
+  const r = S.room, g = guesser();
+  if (amGuesser()) {
+    mount('pick-g-' + r.round, `<section class="screen center">
+      <div class="role you">🎯 You’re guessing this card</div>
+      <h2 class="h2">Pick a number</h2>
+      <p class="sub">Your team will see the word. You won’t.</p>
+      <div class="pick-row">${[1, 2, 3, 4, 5].map(n => `<button class="pick" data-act="pick" data-n="${n}" style="--i:${n};--c:${COLOURS[n]}">${n}</button>`).join('')}</div>
+    </section>`, () => buzz(60));
+  } else {
+    mount('pick-w-' + r.round, `<section class="screen waitbox">
+      ${avatar(g, 'xl bounce')}
+      <h2 class="h2">${esc(g.name)} is guessing</h2>
+      <p class="sub">They’re picking a number. From now on, keep your screen to yourself.</p>
+    </section>`);
+  }
+}
+
+function wordCard(small){
+  const r = S.room;
+  return `<div class="wordcard ${small ? 'small' : ''}">
+    <div class="wc-top"><span>Card ${r.deck_pos + 1} of ${DECK_SIZE}</span><span>Word ${r.word_slot}</span></div>
+    <div class="wc-word">${esc(currentWord())}</div>
+  </div>`;
+}
+function patchStatus(kind){
+  const el = $('#status'); if (!el) return;
+  const r = S.room;
+  el.innerHTML = givers().map(p => {
+    const done = kind === 'clues' ? S.clues.filter(c => c.player_id === p.id).length >= r.clue_slots : p.ready_round === r.round;
+    const k = `${kind}-${r.round}-${p.id}`;
+    const just = done && !S.seen.has(k); if (done) S.seen.add(k);
+    return `<div class="st ${done ? 'done' : ''} ${just ? 'just' : ''}" style="--c:${col(p)}">${avatar(p)}<span>${esc(p.name)}</span><b>${done ? '✓' : '…'}</b></div>`;
+  }).join('');
+}
+function patchHostSkip(kind){
+  const el = $('#hostSkip'); if (!el) return;
+  const r = S.room, g = givers();
+  const some = kind === 'clues' ? S.clues.length > 0 : g.some(p => p.ready_round === r.round);
+  el.innerHTML = isHost() && some ? `<button class="link-btn" data-act="skipwait">${kind === 'clues' ? 'Don’t wait, use the clues we have' : 'Don’t wait, show the clues now'}</button>` : '';
+}
+
+function viewClues(){
+  const r = S.room, g = guesser();
+  if (amGuesser()) {
+    mount('clues-g-' + r.round, `<section class="screen waitbox">
+      <div class="pencil" aria-hidden="true">✏️</div>
+      <h2 class="h2">Your team is writing clues</h2>
+      <p class="sub">Matching clues will be cut before you see them.</p>
+      <div class="status" id="status" style="justify-content:center;margin-top:22px"></div>
+    </section>`);
+    patchStatus('clues');
+    return;
+  }
+  const mine = S.clues.filter(c => c.player_id === me.id).sort((a, b) => a.slot - b.slot);
+  const sent = mine.length >= r.clue_slots && !S.editing;
+  const two = r.clue_slots === 2;
+  mount(`clues-gv-${r.round}-${sent ? 's' : 'f'}`, `<section class="screen">
+    ${wordCard(false)}
+    ${sent
+      ? `<div class="sent"><span>Sent:</span>${mine.map(c => `<span class="mine">${esc(c.clue)}</span>`).join('')}
+           <button class="btn ghost small" data-act="change">Change</button></div>`
+      : `<form class="clue-form" id="clueForm" autocomplete="off">
+           ${two ? `<div class="note">With 3 players, you each give two clues.</div>` : ''}
+           <label class="lbl" for="clue1">${two ? 'Two one-word clues' : 'Your one-word clue'} for ${esc(g.name)}</label>
+           ${Array.from({length: r.clue_slots}, (_, i) => `<input class="field clue-in" id="clue${i + 1}" maxlength="24" autocapitalize="characters" spellcheck="false" value="${esc(mine[i]?.clue || '')}" placeholder="Clue${two ? ' ' + (i + 1) : ''}">`).join('')}
+           <button class="btn big pink" type="submit">Send ${two ? 'clues' : 'clue'}</button>
+         </form>`}
+    <div class="section-title">Clues sent</div>
+    <div class="status" id="status"></div>
+    <div id="hostSkip"></div>
+  </section>`, () => {
+    const f = $('#clueForm');
+    if (f) { f.addEventListener('submit', e => { e.preventDefault(); sendClues(); }); buzz(60); }
+  });
+  patchStatus('clues');
+  patchHostSkip('clues');
+}
+
+function clueCard(c, i, opts = {}){
+  const p = pById(c.player_id) || { name: '?', emoji: '❓', colour: 0 };
+  return `<div class="clue ${opts.tap ? 'tappable' : ''}" data-id="${c.id}" ${opts.tap ? `data-act="toggle" role="button" tabindex="0"` : ''}
+      style="--c:${col(p)};--tilt:${TILTS[i % TILTS.length]};--i:${i}">
+    <div class="tag"><span class="em">${esc(p.emoji)}</span>${esc(p.name)}</div>
+    <div class="word">${esc(c.clue)}</div>
+    ${opts.static ? '' : `<svg class="scribble" viewBox="0 0 200 44" preserveAspectRatio="none" aria-hidden="true"><path d="M6 30 C 30 6, 52 40, 78 18 S 120 6, 140 28 S 176 36, 194 12"/></svg>
+    <div class="why"></div><div class="vote"></div>`}
+  </div>`;
+}
+function viewReview(){
+  const r = S.room;
+  if (amGuesser()) {
+    mount('review-g-' + r.round, `<section class="screen waitbox">
+      <div class="scanner" aria-hidden="true"><span></span><span></span><span></span><i></i></div>
+      <h2 class="h2">Checking for matching clues</h2>
+      <p class="sub">Your team is cutting any clues that are the same.</p>
+      <div class="status" id="status" style="justify-content:center;margin-top:22px"></div>
+    </section>`);
+    patchStatus('ready');
+    return;
+  }
+  const majority = r.settings.review === 'majority';
+  mount(`review-gv-${r.round}-${S.clues.map(c => c.id).join('.')}`, `<section class="screen">
+    ${wordCard(true)}
+    <div class="banner">${majority ? '🗳️ Vote on each clue. Tap to switch your vote between cut and keep.' : '✂️ Tap a clue to cut it, or tap again to bring it back.'}</div>
+    <p class="sub">Matching clues are already crossed out. Check them over before ${esc(guesser().name)} sees them.</p>
+    <div class="clues" id="clues">${sortedClues().map((c, i) => clueCard(c, i, { tap: true })).join('')}</div>
+    <button class="btn big mint" id="readyBtn" data-act="ready"></button>
+    <div class="section-title">Happy with the clues</div>
+    <div class="status" id="status"></div>
+    <div id="hostSkip"></div>
+  </section>`);
+  patchReview();
+  patchStatus('ready');
+  patchHostSkip('ready');
+}
+function patchReview(){
+  if (!$('#clues')) return;
+  const an = analyse(), majority = S.room.settings.review === 'majority';
+  for (const c of S.clues) {
+    const el = document.querySelector(`.clue[data-id="${c.id}"]`); if (!el) continue;
+    const st = clueState(c, an);
+    el.classList.toggle('cut', st.struck);
+    el.setAttribute('aria-label', `${pName(c.player_id)}: ${c.clue}, ${st.struck ? 'cut' : 'kept'}`);
+    el.querySelector('.why').innerHTML = (an[c.id]?.reasons || []).map(x => `<span>${esc(x)}</span>`).join('');
+    el.querySelector('.vote').innerHTML = majority
+      ? `<span>✂️ ${st.strikes} of ${st.n}</span><span class="${st.myVote ? 'me-cut' : 'me-keep'}">You: ${st.myVote ? 'cut' : 'keep'}</span>` : '';
+  }
+  const b = $('#readyBtn');
+  if (b) {
+    const ready = pById(me.id)?.ready_round === S.room.round;
+    b.textContent = ready ? '✓ Ready. Tap to undo' : 'These clues look right';
+    b.classList.toggle('mint', !ready);
+  }
+}
+
+function liveAndCut(){
+  const an = analyse();
+  const all = sortedClues();
+  return { live: all.filter(c => !clueState(c, an).struck), cut: all.filter(c => clueState(c, an).struck) };
+}
+function viewGuess(){
+  const r = S.room, g = guesser(), room = r.settings.play === 'room';
+  const { live, cut } = liveAndCut();
+  const cards = live.length
+    ? live.map((c, i) => clueCard(c, i, { static: true })).join('')
+    : `<div class="empty">Every clue was cut 😬</div>`;
+  if (amGuesser()) {
+    mount('guess-g-' + r.round, `<section class="screen">
+      <div class="role you">🎯 Your clues</div>
+      <div class="clues big">${cards}</div>
+      ${cut.length ? `<p class="cutnote">✂️ ${cut.length} ${cut.length > 1 ? 'clues were' : 'clue was'} cut</p>` : ''}
+      ${room
+        ? `<div class="say">🗣️ Say your answer out loud</div>
+           <button class="btn ghost" data-act="pass" style="width:100%">Pass on this card</button>`
+        : `<form class="guess-form" id="guessForm" autocomplete="off">
+             <input class="field" id="guessIn" maxlength="30" placeholder="Your guess" autocapitalize="characters" spellcheck="false">
+             <button class="btn big pink" type="submit">Guess</button>
+           </form>
+           <button class="link-btn" data-act="pass">Pass on this card</button>`}
+    </section>`, () => {
+      buzz(80);
+      const f = $('#guessForm'); if (f) f.addEventListener('submit', e => { e.preventDefault(); sendGuess(); });
+    });
+    return;
+  }
+  mount('guess-gv-' + r.round, `<section class="screen">
+    ${wordCard(true)}
+    <div class="banner">What ${esc(g.name)} can see</div>
+    <div class="clues">${cards}</div>
+    ${cut.length ? `<div class="banner" style="font-size:1rem">Cut clues</div><div class="clues faded">${cut.map((c, i) => clueCard(c, i, { static: true })).join('')}</div>` : ''}
+    ${room
+      ? `<div class="banner center">Did ${esc(g.name)} get it?</div><div style="height:12px"></div>
+         <div class="btn-row"><button class="btn mint" data-act="correct">✓ Yes</button><button class="btn pink" data-act="wrong">✗ No</button></div>`
+      : `<div class="waiting">Waiting for ${esc(g.name)}’s guess <span class="dots"><span></span><span></span><span></span></span></div>`}
+  </section>`);
+}
+
+function viewResult(){
+  const r = S.room, g = guesser(), res = r.result || 'pass';
+  const lastCard = r.deck_pos + 1 >= DECK_SIZE;
+  const official = r.settings.scoring === 'official';
+  const head = { correct: ['Got it! 🎉', `${g.name} wins the card`], wrong: ['Not quite', 'That card is lost'], pass: ['Passed', 'That card is lost'] }[res];
+  let penalty = '';
+  if (res === 'wrong' && official) penalty = lastCard ? 'This was the last card, so the wrong guess also costs a point.' : 'Official scoring: the next card is lost too.';
+  const nextLabel = (lastCard || (res === 'wrong' && official && r.deck_pos + 2 >= DECK_SIZE)) ? 'See the final score' : 'Next card';
+  const { live } = liveAndCut();
+  const fresh = mount(`result-${r.round}-${res}`, `<section class="screen">
+    <div class="result-head ${res}"><div class="big">${head[0]}</div><p class="sub">${esc(head[1])}</p></div>
+    <div class="reveal"><div class="sub">The word was</div><div class="w">${esc(currentWord())}</div></div>
+    ${r.guess ? `<div class="guessed">${esc(g.name)} guessed <span>${esc(r.guess)}</span></div>` : ''}
+    ${penalty ? `<div class="penalty">${penalty}</div>` : ''}
+    ${live.length ? `<div class="clues">${live.map((c, i) => clueCard(c, i, { static: true })).join('')}</div>` : '<div style="height:16px"></div>'}
+    ${!amGuesser() && res !== 'pass'
+      ? `<button class="link-btn" data-act="overrule" data-to="${res === 'correct' ? 'wrong' : 'correct'}">${res === 'correct' ? 'Change to wrong' : 'Change to correct'}</button>` : ''}
+    <div style="height:10px"></div>
+    <button class="btn big ${res === 'correct' ? 'mint' : 'pink'}" data-act="next">${nextLabel}</button>
+  </section>`);
+  if (fresh && res === 'correct') { confetti(); buzz([40, 60, 40]); }
+}
+
+function rating(s){
+  if (s >= 13) return 'A perfect game. Nobody beats that.';
+  if (s === 12) return 'Twelve! So close to perfect.';
+  if (s === 11) return 'Brilliant. You’re all on the same wavelength.';
+  if (s >= 9) return 'Great game.';
+  if (s >= 7) return 'Pretty good. Not bad at all.';
+  if (s >= 4) return 'Room for improvement. Rematch?';
+  return 'That was rough. Have another go.';
+}
+function viewFinished(){
+  const r = S.room;
+  const icons = { won: '✅', wrong: '❌', passed: '⏭️', discarded: '🗑️' };
+  const fresh = mount('fin-' + r.game_no, `<section class="screen">
+    <div class="final">
+      <div class="final-score" id="fs">0</div>
+      <div class="of">out of ${DECK_SIZE}</div>
+      <div class="rating">${rating(r.score)}</div>
+    </div>
+    <ol class="hist">${(r.history || []).map((h, i) => `<li style="--i:${i}"><span class="ic">${icons[h.out]}</span>
+      <span class="w">${h.word ? esc(h.word) : '<small>Card lost</small>'}</span>
+      ${h.by ? `<small>${esc(h.by)}${h.penalty ? ', minus 1 point' : ''}</small>` : ''}</li>`).join('')}</ol>
+    <button class="btn big pink" data-act="again">Play again</button>
+    ${isHost() ? `<button class="link-btn" data-act="tolobby">Change settings or players</button>` : ''}
+  </section>`);
+  if (fresh) {
+    const el = $('#fs'); let n = 0;
+    const tick = setInterval(() => { el.textContent = n; if (n++ >= r.score) { clearInterval(tick); if (r.score >= 8) confetti(); } }, 90);
+  }
+}
+
+/* ---------- confetti ---------- */
+function confetti(){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cv = $('#confetti'), cx = cv.getContext('2d');
+  const W = cv.width = innerWidth * devicePixelRatio, H = cv.height = innerHeight * devicePixelRatio;
+  cv.style.width = innerWidth + 'px'; cv.style.height = innerHeight + 'px';
+  const cols = ['#FF4F9A', '#FFD23F', '#3B6CFF', '#21D19F', '#FF8A3D', '#9B6BFF'];
+  const bits = Array.from({length: 170}, () => ({
+    x: W / 2 + (Math.random() - .5) * W * .3, y: H * .45,
+    vx: (Math.random() - .5) * 26 * devicePixelRatio, vy: (-Math.random() * 24 - 8) * devicePixelRatio,
+    w: (6 + Math.random() * 8) * devicePixelRatio, h: (8 + Math.random() * 10) * devicePixelRatio,
+    r: Math.random() * 6, vr: (Math.random() - .5) * .4, c: cols[Math.floor(Math.random() * cols.length)],
+  }));
+  let t = 0;
+  (function frame(){
+    cx.clearRect(0, 0, W, H);
+    for (const b of bits) {
+      b.vy += .7 * devicePixelRatio; b.vx *= .985; b.x += b.vx; b.y += b.vy; b.r += b.vr;
+      cx.save(); cx.translate(b.x, b.y); cx.rotate(b.r); cx.fillStyle = b.c;
+      cx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h * Math.abs(Math.cos(b.r * 2))); cx.restore();
+    }
+    if (++t < 160) requestAnimationFrame(frame); else cx.clearRect(0, 0, W, H);
+  })();
+}
+
+/* ---------- start up ---------- */
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.clue.tappable')) { e.preventDefault(); toggleClue(+e.target.dataset.id); }
+});
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.code) { refresh(); S.wake = null; keepAwake(); } });
+
+async function boot(){
+  if (SUPABASE_URL.includes('YOUR-') || typeof supabase === 'undefined') {
+    $('#screen').innerHTML = `<section class="screen panel" style="margin-top:30px"><h2 class="h2">Almost ready</h2>
+      <p>Open this file in a text editor and paste your Supabase project URL and anon key near the top of the script, where it says SETTINGS.</p></section>`;
+    return;
+  }
+  db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const urlCode = (new URLSearchParams(location.search).get('room') || '').toUpperCase();
+  const sess = load('jo_session');
+  const code = urlCode || sess?.code;
+  if (code && me.name) {
+    const [{ data: room }, { data: mine }] = await Promise.all([
+      db.from('jo_rooms').select('code').eq('code', code).maybeSingle(),
+      db.from('jo_players').select('*').eq('room_code', code).eq('id', me.id).maybeSingle(),
+    ]);
+    if (room && mine && !mine.left_game) { enterRoom(code); return; }
+  }
+  viewHome(urlCode);
+}
+boot();
+</script>
+</body>
+</html>
